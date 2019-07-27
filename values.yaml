@@ -1,0 +1,32 @@
+# Kubernetes Node Backup v1.0.0
+
+image:
+  repository: rafagonc/backup
+  tag: "1.0.2"
+  pullPolicy: Always
+
+storage:
+  backend: "minio"
+  minio:
+    key: ""
+    secret: ""
+    uri: ""
+  aws:
+    key: ""
+    secret: ""
+  bucket: ""
+
+exporter:
+  backend: "prometheus"
+  prometheus:
+    uri: "http://prometheus-alert-manager"
+
+backup:
+  hostDirs:
+  - name: host-dir-1
+    dir: "/etc/host-dir-1"
+  - name: host-dir-2
+    dir: "/mnt/dir2"
+
+  interval: 24 #hours
+  pastBackupThreshold: 5

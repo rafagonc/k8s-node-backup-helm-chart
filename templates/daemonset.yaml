@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-backup
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: node-backup
+  template:
+    metadata:
+      labels:
+        name: node-backup
+    spec:
+      tolerations: []
+      containers:
+      - name: node-backup
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: BACKUP_EXPORTER_PROMETHEUS_PUSH_GATEWAY_URI
+          value: "{{ .Values.exporter.prometheus.uri }}"
+        - name: MINIO_URI
+          value: "{{ .Values.storage.minio.uri }}"
+        - name: MINIO_ACCESS_KEY_ID
+          value: "{{ .Values.storage.minio.key }}"
+        - name: MINIO_SECRET_ACCESS_KEY
+          value: "{{ .Values.storage.minio.secret }}"
+        - name: AWS_ACCESS_KEY_ID
+          value: "{{ .Values.storage.aws.key }}"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "{{ .Values.storage.aws.secret }}"
+        - name: BACKUP_BUCKET_BACKEND
+          value: "{{ .Values.storage.backend }}"
+        - name: BACKUP_EXPORTER_BACKEND
+          value: "{{ .Values.exporter.backend }}"
+        - name: BACKUP_S3_BUCKET
+          value: "{{ .Values.storage.bucket }}"
+        {{- range .Values.backup.hostDirs }}
+        - name: BACKUP_DIR_{{ .name }}
+          value: {{ .dir | quote }}
+        {{- end }}
+        - name: BACKUP_HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: BACKUP_CONTINUOUS
+          value: "true"
+        - name: BACKUP_INTERVAL
+          value: "{{ .Values.backup.interval }}"
+        - name: BACKUP_MAX_PAST_BACKUPS_ON_BUCKET
+          value: "{{ .Values.backup.pastBackupThreshold }}"
+        resources: {}
+        volumeMounts:
+        {{- range .Values.backup.hostDirs }}
+        - name: {{ .name }}
+          mountPath: {{ .dir | quote }}
+        {{- end }}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      {{- range .Values.backup.hostDirs }}
+      - name: {{ .name | quote }}
+        hostPath:
+          path: {{ .dir | quote }}
+      {{- end }}
+
